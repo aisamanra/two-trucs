@@ -1,11 +1,11 @@
-use failure::Error;
-use pulldown_cmark::{CowStr, Event, Options, Parser, Tag};
-use std::{fs::File, io::Read};
+use pulldown_cmark::{CowStr, Event, Parser};
 
-type Doc<'a> = Vec<Node<'a>>;
+pub use pulldown_cmark::{Tag,CodeBlockKind};
+
+pub type Doc<'a> = Vec<Node<'a>>;
 
 pub struct DocBuilder<'a> {
-    doc: Vec<Node<'a>>,
+    doc: Doc<'a>,
     partial: Vec<PartialNode<'a>>,
 }
 
@@ -18,7 +18,6 @@ impl<'a> DocBuilder<'a> {
         let mut builder = Self::new();
 
         for event in parser {
-            println!("event: {:?}", event);
             match event {
                 Event::Start(tag) => builder.start(tag),
                 Event::End(_) => builder.end(),
@@ -36,7 +35,7 @@ impl<'a> DocBuilder<'a> {
         builder
     }
 
-    pub fn build(self) -> Vec<Node<'a>> {
+    pub fn build(self) -> Doc<'a> {
         self.doc
     }
 
@@ -61,7 +60,7 @@ impl<'a> DocBuilder<'a> {
 
 struct PartialNode<'a> {
     tag: Tag<'a>,
-    children: Vec<Node<'a>>,
+    children: Doc<'a>,
 }
 
 impl<'a> PartialNode<'a> {
@@ -98,4 +97,26 @@ pub enum Node<'a> {
     SoftBreak,
     Rule,
     TaskListMarker(bool),
+}
+
+impl<'a> Node<'a> {
+    /// Returns `Some` if this node is a task list item, and a boolean value indicating whether or
+    /// not it's checked.
+    pub fn is_todo(&self) -> Option<bool> {
+        if let Node::Node { tag, children } = self {
+            if let Tag::Item = tag {
+                return children.first().and_then(|node| node.is_task_marker())
+            }
+        }
+
+        None
+    }
+
+    pub fn is_task_marker(&self) -> Option<bool> {
+        if let Node::TaskListMarker(b) = self {
+            Some(*b)
+        } else {
+            None
+        }
+    }
 }
