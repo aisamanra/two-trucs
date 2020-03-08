@@ -1,6 +1,7 @@
 extern crate clap;
 extern crate comrak;
 extern crate failure;
+extern crate pulldown_cmark;
 
 use clap::{App, Arg};
 use comrak::{Arena, ComrakOptions};
@@ -12,6 +13,7 @@ use std::{
 };
 
 mod next;
+mod parse;
 mod render;
 mod sort;
 mod utils;
