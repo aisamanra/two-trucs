@@ -45,7 +45,7 @@ impl<'a> DocBuilder<'a> {
 
     pub fn end(&mut self) {
         if let Some(partial) = self.partial.pop() {
-            self.push(partial.to_node());
+            self.push(partial.build());
         }
     }
 
@@ -75,7 +75,7 @@ impl<'a> PartialNode<'a> {
         self.children.push(child)
     }
 
-    fn to_node(self) -> Node<'a> {
+    fn build(self) -> Node<'a> {
         Node::Node {
             tag: self.tag,
             children: self.children,

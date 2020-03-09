@@ -53,7 +53,7 @@ fn main() -> Result<(), Error> {
         }
     }
 
-    let mut doc = parse::DocBuilder::from(Parser::new_ext(&input, Options::ENABLE_TASKLISTS)).build();
+    let mut doc = parse::DocBuilder::from(Parser::new_ext(&input, Options::all())).build();
     sort::sort_tasks(&mut doc);
 
 
@@ -61,8 +61,7 @@ fn main() -> Result<(), Error> {
         //next::start_next_day(&arena, doc, matches.value_of("title").unwrap())?;
     }
 
-    render::Renderer::new(&mut io::stdout()).render_doc(&doc)?;
-    println!("{:?}", doc);
+    render::render_document(&doc, &mut io::stdout())?;
 
     Ok(())
 }
