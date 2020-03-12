@@ -1,6 +1,6 @@
 use pulldown_cmark::{CowStr, Event, Parser};
 
-pub use pulldown_cmark::{Tag,CodeBlockKind};
+pub use pulldown_cmark::{CodeBlockKind, Tag};
 
 pub type Doc<'a> = Vec<Node<'a>>;
 
@@ -11,7 +11,10 @@ pub struct DocBuilder<'a> {
 
 impl<'a> DocBuilder<'a> {
     pub fn new() -> Self {
-        DocBuilder { doc: Vec::new(), partial: Vec::new() }
+        DocBuilder {
+            doc: Vec::new(),
+            partial: Vec::new(),
+        }
     }
 
     pub fn from(parser: Parser<'a>) -> Self {
@@ -105,7 +108,7 @@ impl<'a> Node<'a> {
     pub fn is_todo(&self) -> Option<bool> {
         if let Node::Node { tag, children } = self {
             if let Tag::Item = tag {
-                return children.first().and_then(|node| node.is_task_marker())
+                return children.first().and_then(|node| node.is_task_marker());
             }
         }
 
