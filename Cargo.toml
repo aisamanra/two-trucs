@@ -8,6 +8,7 @@ edition = "2018"
 failure = "0.1.7"
 clap = "2.33.0"
 pulldown-cmark = "0.7.0"
+git2 = "*"
 
 [dev-dependencies]
 colored-diff = "0.2.2"

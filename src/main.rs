@@ -1,5 +1,6 @@
 extern crate clap;
 extern crate failure;
+extern crate git2;
 extern crate pulldown_cmark;
 
 use clap::{App, Arg};
@@ -41,12 +42,17 @@ fn main() -> Result<(), Error> {
                 .long("inplace")
                 .help("Write to the input file instead of printing to stdout"),
         )
+        .arg(
+            Arg::with_name("git")
+                .long("git")
+                .help("Automatically commit the file to a git repo (implies `--inplace`)"),
+        )
         .get_matches();
 
-    if matches.is_present("inplace") {
+    if matches.is_present("inplace") || matches.is_present("git") {
         match matches.value_of("input") {
             Some("-") | None =>
-                bail!("Cannot use `--inplace` without a filename"),
+                bail!("Cannot use `--inplace` or `--git` without a filename"),
             _ => (),
         }
     }
@@ -68,12 +74,26 @@ fn main() -> Result<(), Error> {
         None
     };
 
-    if matches.is_present("inplace") {
-        let mut output_file = match matches.value_of("input") {
+    if matches.is_present("inplace") || matches.is_present("git") {
+        let file_path = match matches.value_of("input") {
             Some("-") | None => unreachable!(),
-            Some(path) => File::create(path)?,
+            Some(path) => path,
         };
+        let mut output_file = File::create(file_path)?;
         rewrite::rewrite(opt_title, &input, &mut output_file)?;
+
+        if matches.is_present("git") {
+            let repo = git2::Repository::discover(file_path)?;
+            let mut index = repo.index()?;
+            let canonical_path = std::path::Path::new(file_path).canonicalize()?;
+            let relative_path = canonical_path.strip_prefix(repo.workdir().unwrap())?;
+            index.add_path(relative_path)?;
+            let tree = repo.find_tree(index.write_tree()?)?;
+            let sig = repo.signature()?;
+            let head = repo.head()?.peel_to_commit()?;
+            let msg = format!("two-trucs: Updating todo file `{}`", relative_path);
+            repo.commit(Some("HEAD"), &sig, &sig, &msg, &tree, &[&head])?;
+        }
     } else {
         rewrite::rewrite(opt_title, &input, &mut io::stdout())?;
     }
