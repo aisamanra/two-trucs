@@ -3,7 +3,7 @@ extern crate failure;
 extern crate pulldown_cmark;
 
 use clap::{App, Arg};
-use failure::Error;
+use failure::{Error, bail};
 
 use std::{
     fs::File,
@@ -36,7 +36,20 @@ fn main() -> Result<(), Error> {
                 .index(1)
                 .help("The TODO file to process"),
         )
+        .arg(
+            Arg::with_name("inplace")
+                .long("inplace")
+                .help("Write to the input file instead of printing to stdout"),
+        )
         .get_matches();
+
+    if matches.is_present("inplace") {
+        match matches.value_of("input") {
+            Some("-") | None =>
+                bail!("Cannot use `--inplace` without a filename"),
+            _ => (),
+        }
+    }
 
     let mut input = String::new();
     match matches.value_of("input") {
@@ -55,7 +68,15 @@ fn main() -> Result<(), Error> {
         None
     };
 
-    rewrite::rewrite(opt_title, &input, &mut io::stdout())?;
+    if matches.is_present("inplace") {
+        let mut output_file = match matches.value_of("input") {
+            Some("-") | None => unreachable!(),
+            Some(path) => File::create(path)?,
+        };
+        rewrite::rewrite(opt_title, &input, &mut output_file)?;
+    } else {
+        rewrite::rewrite(opt_title, &input, &mut io::stdout())?;
+    }
 
     Ok(())
 }
